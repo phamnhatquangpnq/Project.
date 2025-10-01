@@ -1,22 +1,291 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wuang</title>
-  </head>
-  <body>
-    <h1>Chào mừng đến với Wuang</h1>
-    <a href="./index.html">
-      <img src="./img/meme-meo-cuoi-5.jpg" alt="TheCat" width="300" />
-    </a>
-    <p>Wuang là một nền tảng học tập trực tuyến.</p>
-    <p>Hãy khám phá các khóa học và tài nguyên của chúng tôi!</p>
-    <p>Cảm ơn bạn đã ghé thăm!</p>
-    <p>Chúng tôi hy vọng bạn có những trải nghiệm học tập tuyệt vời!</p>
-    <p>Hãy liên hệ với chúng tôi nếu bạn có bất kỳ câu hỏi nào.</p>
-    <p>Chúng tôi luôn sẵn sàng hỗ trợ bạn!</p>
-    <p>Địa chỉ email: support@wuang.com</p>
-    <p>Số điện thoại: +84 123 456 789</p>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Xếp Hình (Tetris)</title>
+  <style>
+    :root{ --bg:#0e1222; --panel:#141933; --accent:#60a5fa; --text:#e6e9f2; --muted:#9aa2b2 }
+    *{box-sizing:border-box}
+    body{margin:0; background:radial-gradient(1000px 700px at 50% -10%,#1b2249 0%,var(--bg) 55%); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; display:grid; place-items:center; min-height:100svh}
+    .wrap{ width:min(98vw,960px); display:grid; grid-template-columns: 1fr 220px; gap:16px; align-items:start }
+    header{ grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center }
+    h1{ margin:14px 0; font-size:clamp(18px,2.4vw,24px) }
+    .btn{ cursor:pointer; background:#121735; border:1px solid #273060; border-radius:12px; color:var(--text); padding:10px 14px; font-weight:600 }
+    .btn:hover{ filter:brightness(1.08) }
+    .board{ position:relative; background:#0a0f23; border:1px solid #273060; border-radius:14px; padding:8px; }
+    canvas{ display:block; background:#0a0f23; border-radius:8px; image-rendering:pixelated }
+    .side{ background:linear-gradient(180deg,#151a36,#121631); border:1px solid #273060; border-radius:14px; padding:12px; display:grid; gap:10px }
+    .stat{ display:flex; justify-content:space-between; gap:8px; background:#0f1430; border:1px solid #273060; padding:8px 10px; border-radius:10px; color:var(--muted) }
+    .stat strong{ color:var(--text) }
+    .panel{ background:#0f1430; border:1px solid #273060; border-radius:10px; padding:10px }
+    .label{ color:var(--muted); margin-bottom:6px; font-size:12px }
+    .grid{ display:grid; grid-template-columns:repeat(4,18px); gap:2px; }
+    .sq{ width:18px; height:18px; border-radius:4px; background:#182046; border:1px solid #24306a }
+    .overlay{ position:absolute; inset:8px; display:grid; place-items:center; background:rgba(10,14,30,.65); backdrop-filter: blur(3px); border-radius:10px }
+    .ovl-card{ text-align:center; background:#0f1430; border:1px solid #273060; padding:18px; border-radius:12px; width:min(90%,380px) }
+    .kbd{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#0b1022; border:1px solid #243056; padding:2px 6px; border-radius:8px }
+    .mobile{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px }
+    .mobile .btn{ padding:12px }
+    @media (pointer:fine){ .mobile{ display:none } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🧩 Xếp Hình (Tetris)</h1>
+      <div style="display:flex; gap:8px">
+        <button class="btn" id="btn-start">Bắt đầu</button>
+        <button class="btn" id="btn-pause">Tạm dừng</button>
+        <button class="btn" id="btn-restart">Chơi lại</button>
+      </div>
+    </header>
+
+    <div class="board">
+      <canvas id="game" width="300" height="600" aria-label="Bàn chơi 10x20"></canvas>
+      <div id="overlay" class="overlay" hidden>
+        <div class="ovl-card">
+          <h2 id="ovl-title" style="margin:0 0 8px">Sẵn sàng?</h2>
+          <p id="ovl-desc" style="margin:0 0 10px; color:var(--muted)">Nhấn <span class="kbd">Space</span> hoặc <b>Bắt đầu</b>.</p>
+          <div style="display:flex; justify-content:center; gap:8px">
+            <button class="btn" id="ovl-start">Bắt đầu</button>
+          </div>
+          <p style="margin-top:10px; color:var(--muted)">Trái/Phải: <span class="kbd">← →</span> • Xoay: <span class="kbd">Z/X</span> • Rơi nhanh: <span class="kbd">↓</span> • Rơi tức thì: <span class="kbd">Space</span> • Tạm dừng: <span class="kbd">P</span></p>
+        </div>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="stat">Điểm <strong id="score">0</strong></div>
+      <div class="stat">Hàng <strong id="lines">0</strong></div>
+      <div class="stat">Cấp <strong id="level">1</strong></div>
+      <div class="stat">Kỷ lục <strong id="hi">0</strong></div>
+
+      <div class="panel">
+        <div class="label">Khối kế tiếp</div>
+        <canvas id="next" width="90" height="90"></canvas>
+      </div>
+
+      <div class="panel">
+        <div class="label">Điều khiển nhanh</div>
+        <div class="mobile">
+          <button class="btn" data-act="left">←</button>
+          <button class="btn" data-act="rotateL">Z</button>
+          <button class="btn" data-act="rotateR">X</button>
+          <button class="btn" data-act="right">→</button>
+          <button class="btn" data-act="soft">↓</button>
+          <button class="btn" data-act="hard" style="grid-column:span 3">Rơi ngay (Space)</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+  // ====== TETRIS (10x20) — single-file, màu chuẩn ======
+  const W=10, H=20, CELL=30; // canvas 300x600
+  const cvs = document.getElementById('game');
+  const ctx = cvs.getContext('2d');
+  const nextCvs = document.getElementById('next');
+  const nctx = nextCvs.getContext('2d');
+  const $ = s=>document.querySelector(s);
+
+  const COLORS = {
+    I:'#06b6d4', J:'#3b82f6', L:'#f59e0b', O:'#facc15', S:'#22c55e', T:'#a855f7', Z:'#ef4444',
+    ghost:'rgba(255,255,255,.18)', grid:'#0f1636', bg:'#0a0f23', stroke:'#1e2a62'
+  };
+
+  // Tetromino shapes (relative coords for state 0)
+  const SHAPES = {
+    I:[[0,1],[1,1],[2,1],[3,1]],
+    J:[[0,0],[0,1],[1,1],[2,1]],
+    L:[[2,0],[0,1],[1,1],[2,1]],
+    O:[[1,0],[2,0],[1,1],[2,1]],
+    S:[[1,0],[2,0],[0,1],[1,1]],
+    T:[[1,0],[0,1],[1,1],[2,1]],
+    Z:[[0,0],[1,0],[1,1],[2,1]],
+  };
+
+  // Simple wall-kick table (naive). Good enough for casual play.
+  const KICKS = [[0,0],[1,0],[-1,0],[0,-1],[0,1],[2,0],[-2,0]];
+
+  let grid, cur, bag, nextPiece, score, lines, level, fallInterval, fallTimer, running, paused, hi;
+
+  function emptyGrid(){ return Array.from({length:H},()=>Array(W).fill(null)); }
+
+  function spawn(){
+    if (!bag || bag.length===0) bag = shuffle(['I','J','L','O','S','T','Z']);
+    const type = bag.pop();
+    cur = { type, rot:0, x:3, y:0, color: COLORS[type] };
+    if (collide(cur,0,0,0)) { gameOver(); return; }
+    nextPiece = (bag.length? bag[bag.length-1] : null);
+  }
+
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+  function cells(piece){
+    const pts = SHAPES[piece.type];
+    // rotate around (1,1) center of 3x3 (I/O fit visually ok with kicks)
+    return pts.map(([x,y])=> rotPoint(x,y,piece.rot)).map(([x,y])=> [x+piece.x, y+piece.y]);
+  }
+
+  function rotPoint(x,y,r){
+    // r: 0,1,2,3 (90deg cw each). rotate around (1,1)
+    const cx=1, cy=1; x-=cx; y-=cy;
+    for(let i=0;i<r;i++){ [x,y]=[y,-x]; }
+    return [x+cx,y+cy];
+  }
+
+  function collide(p, dx,dy, drot){
+    const test = { ...p, x:p.x+dx, y:p.y+dy, rot:(p.rot+drot+4)%4 };
+    for (const [x,y] of cells(test)){
+      if (x<0 || x>=W || y<0 || y>=H) return true;
+      if (grid[y][x]) return true;
+    }
+    return false;
+  }
+
+  function lock(){
+    for (const [x,y] of cells(cur)) if (y>=0 && y<H) grid[y][x] = cur.color;
+    // clear lines
+    let cleared=0;
+    for (let y=H-1; y>=0; y--){
+      if (grid[y].every(v=>v)){
+        grid.splice(y,1); grid.unshift(Array(W).fill(null));
+        cleared++; y++;
+      }
+    }
+    if (cleared){
+      const pts = [0,40,100,300,1200][cleared];
+      score += pts * Math.max(1, level);
+      lines += cleared;
+      if (lines >= level*10) { level++; calcFall(); }
+      updateHUD();
+    }
+    spawn();
+  }
+
+  function rotate(dir){
+    const drot = dir>0?1:3;
+    if (!collide(cur,0,0,drot)){ cur.rot=(cur.rot+drot)%4; return; }
+    for (const [kx,ky] of KICKS){ if (!collide(cur,kx,ky,drot)){ cur.x+=kx; cur.y+=ky; cur.rot=(cur.rot+drot)%4; return; } }
+  }
+
+  function softDrop(){ if (!collide(cur,0,1,0)) { cur.y++; score+=1; updateHUD(); } else { lock(); } }
+  function hardDrop(){ let d=0; while(!collide(cur,0,1,0)){ cur.y++; d++; } score += 2*d; updateHUD(); lock(); }
+
+  function move(dx){ if (!collide(cur,dx,0,0)) cur.x+=dx; }
+
+  function ghostY(){ let y=cur.y; while(!collide(cur,0,(y-cur.y)+1,0)) y++; return y; }
+
+  function draw(){
+    // background
+    ctx.fillStyle = COLORS.bg; ctx.fillRect(0,0,cvs.width,cvs.height);
+    // grid lines
+    ctx.strokeStyle = COLORS.grid; ctx.lineWidth = 1; ctx.beginPath();
+    for(let x=1;x<W;x++){ ctx.moveTo(x*CELL+.5,0); ctx.lineTo(x*CELL+.5,H*CELL); }
+    for(let y=1;y<H;y++){ ctx.moveTo(0,y*CELL+.5); ctx.lineTo(W*CELL,y*CELL+.5); }
+    ctx.stroke();
+
+    // settled blocks
+    for (let y=0;y<H;y++) for(let x=0;x<W;x++){ const c=grid[y][x]; if (c) drawCell(x,y,c,true); }
+
+    // ghost piece
+    const gy = ghostY();
+    for (const [x,y] of cells(cur)) drawCell(x, y + (gy-cur.y), COLORS.ghost, false, true);
+
+    // current piece
+    for (const [x,y] of cells(cur)) drawCell(x,y,cur.color,false);
+  }
+
+  function drawCell(x,y,color,settled=false,ghost=false){
+    if (y<0) return;
+    const px=x*CELL, py=y*CELL;
+    ctx.fillStyle = color; ctx.fillRect(px+1,py+1,CELL-2,CELL-2);
+    if (!ghost){
+      // simple bevel
+      ctx.strokeStyle = settled? COLORS.stroke : 'rgba(255,255,255,.12)';
+      ctx.lineWidth = 2; ctx.strokeRect(px+2,py+2,CELL-4,CELL-4);
+    }
+  }
+
+  function drawNext(){
+    nctx.clearRect(0,0,nextCvs.width,nextCvs.height);
+    if (!nextPiece) return;
+    const color = COLORS[nextPiece];
+    const pts = SHAPES[nextPiece];
+    // center into 4x4 preview
+    const offsetX = 1, offsetY = 1;
+    for (const [x0,y0] of pts){
+      const x = (x0+offsetX)*18, y=(y0+offsetY)*18;
+      nctx.fillStyle=color; nctx.fillRect(x+1,y+1,16,16);
+      nctx.strokeStyle='rgba(255,255,255,.15)'; nctx.lineWidth=1; nctx.strokeRect(x+1.5,y+1.5,15,15);
+    }
+  }
+
+  function updateHUD(){
+    $('#score').textContent = score;
+    $('#lines').textContent = lines;
+    $('#level').textContent = level;
+    $('#hi').textContent = hi;
+  }
+
+  function calcFall(){
+    // classic: speed up with level (approx)
+    const fps = Math.min(20 + level*3, 60);
+    fallInterval = Math.max(1000 - (level-1)*75, 100); // ms
+  }
+
+  function tick(ts){
+    if (!running || paused){ requestAnimationFrame(tick); return; }
+    const now = performance.now();
+    if (!fallTimer) fallTimer = now;
+    const dt = now - fallTimer;
+    if (dt>=fallInterval){
+      if (!collide(cur,0,1,0)) cur.y++; else lock();
+      fallTimer = now;
+    }
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  function start(){ if (!running){ running=true; paused=false; $('#overlay').hidden=true; requestAnimationFrame(tick); } }
+  function pauseToggle(){ if (!running) return; paused=!paused; $('#overlay').hidden = !paused ? true : false; $('#ovl-title').textContent = paused? 'Tạm dừng' : 'Sẵn sàng?'; $('#ovl-desc').innerHTML = paused? 'Nhấn tiếp để chơi.' : 'Nhấn <span class="kbd">Space</span> hoặc Bắt đầu.'; }
+  function gameOver(){ running=false; paused=false; $('#overlay').hidden=false; $('#ovl-title').textContent='Thua rồi!'; $('#ovl-desc').innerHTML='Nhấn <b>Chơi lại</b> để thử lại.'; if (score>hi){ localStorage.setItem('tetris.hi', String(score)); hi=score; $('#hi').textContent=hi; } }
+
+  function reset(){
+    grid = emptyGrid(); score=0; lines=0; level=1; calcFall(); fallTimer=0; running=false; paused=false;
+    hi = +(localStorage.getItem('tetris.hi')||0);
+    bag=[]; nextPiece=null; spawn(); draw(); drawNext(); updateHUD();
+    $('#overlay').hidden=false; $('#ovl-title').textContent='Sẵn sàng?'; $('#ovl-desc').innerHTML='Nhấn <span class="kbd">Space</span> hoặc <b>Bắt đầu</b>.';
+  }
+
+  // ===== Inputs =====
+  window.addEventListener('keydown', e=>{
+    const k=e.key.toLowerCase();
+    if (k==='arrowleft') move(-1);
+    else if (k==='arrowright') move(1);
+    else if (k==='arrowdown') softDrop();
+    else if (k===' '){ e.preventDefault(); hardDrop(); start(); }
+    else if (k==='z') rotate(-1);
+    else if (k==='x' || k==='arrowup') rotate(1);
+    else if (k==='p') pauseToggle();
+    draw();
+  });
+
+  document.querySelectorAll('[data-act]').forEach(b=> b.addEventListener('click', ()=>{
+    const a=b.dataset.act; if(a==='left') move(-1); if(a==='right') move(1); if(a==='soft') softDrop(); if(a==='hard') hardDrop(); if(a==='rotateL') rotate(-1); if(a==='rotateR') rotate(1); draw();
+  }));
+
+  $('#btn-start').onclick=()=> start();
+  $('#ovl-start').onclick=()=> start();
+  $('#btn-restart').onclick=()=> { reset(); start(); };
+  $('#btn-pause').onclick=()=> pauseToggle();
+
+  // Init
+  reset();
+  requestAnimationFrame(tick);
+  // keep preview updated
+  const obs = new MutationObserver(drawNext); obs.observe(document.body,{subtree:true,childList:true});
+  </script>
+</body>
 </html>

@@ -1,0 +1,22 @@
+{
+  "name": "tetris-html-js",
+  "version": "1.0.0",
+  "description": "A simple Tetris game implemented in HTML, CSS, and JavaScript.",
+  "main": "src/js/app.js",
+  "scripts": {
+    "start": "live-server src"
+  },
+  "keywords": [
+    "tetris",
+    "game",
+    "html",
+    "css",
+    "javascript"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "live-server": "^1.2.1"
+  }
+}
